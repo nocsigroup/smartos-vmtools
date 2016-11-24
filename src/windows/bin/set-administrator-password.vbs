@@ -3,23 +3,31 @@
 '
 
 Function hostname() 
-	set objNetwork = CreateObject("Wscript.Network")
+	Set objNetwork = CreateObject("Wscript.Network")
 	strComputer = objNetwork.ComputerName
 	hostname = strComputer
 End Function
 
 Function setPassword()
-	set objShell = CreateObject("Wscript.Shell")
-	set objExec = objShell.exec("c:\smartdc\bin\mdata-get administrator_pw")
+	Set objShell = CreateObject("Wscript.Shell")
 	Dim strPassword
 
-	Do While objExec.Stdout.AtEndOfStream <> True
-		strPassword = objExec.StdOut.ReadLine
-    set objUser = GetObject("WinNT://" & hostname & "/Administrator, user")
-    objUser.SetPassword strPassword
-    objUser.SetInfo
-	loop
-
-end Function
+	For retries = 0 To 3
+		Set objExec = objShell.exec("c:\smartdc\bin\mdata-giet administrator_pw")
+		Do While objExec.Stdout.AtEndOfStream <> True
+			strPassword = objExec.StdOut.ReadLine
+			Select Case strPassword
+				Case "SUCCESS", "NOTFOUND", ""
+					Debug.WriteLine("ignoring line: " + strPassword)
+				Case Else
+					Set objUser = GetObject("WinNT://" & hostname & "/Administrator, user")
+					objUser.SetPassword strPassword
+					objUser.SetInfo
+					Debug.WriteLine("Password Set")
+					Exit Function
+			End Select
+		loop
+	Next
+End Function
 
 setPassword
